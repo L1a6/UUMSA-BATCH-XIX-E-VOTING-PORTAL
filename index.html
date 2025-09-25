@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>UUMSA Batch XIX — E-Voting System</title>
+
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- GSAP -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<!-- Confetti -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+
+<style>
+  :root{
+    --bg-1:#081023; --bg-2:#0f2033; --muted:#94a3b8;
+    --accentA:#6ee7b7; --accentB:#7c3aed; --glass: rgba(255,255,255,0.03);
+  }
+  html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue";background:linear-gradient(135deg,var(--bg-1),var(--bg-2));color:#e6eef8}
+  .wrap{max-width:1100px;margin:40px auto;padding:28px;position:relative}
+  .glass{background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:24px; box-shadow:0 18px 60px rgba(2,6,23,0.6); backdrop-filter: blur(8px) saturate(120%);}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+  .brand{display:flex;gap:12px;align-items:center}
+  .logo{width:80px;height:80px;border-radius:12px;overflow:hidden}
+  .logo img{width:100%;height:100%;object-fit:cover}
+  h1{font-weight:900;font-size:20px;margin:0;color:#fff}
+  p.muted{color:var(--muted);margin:0}
+
+  input,select,textarea{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.018);color:inherit;font-size:15px}
+  .btn{display:inline-flex;align-items:center;gap:10px;padding:12px 18px;border-radius:12px;cursor:pointer;font-weight:700;border:none}
+  .btn-primary{background:linear-gradient(90deg,var(--accentA),var(--accentB));color:#001;box-shadow:0 12px 40px rgba(124,58,237,0.08)}
+  .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+  .small{font-size:14px;padding:10px 16px}
+
+  .preview-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+  .preview-item{background:rgba(255,255,255,0.03);border-radius:12px;padding:12px;text-align:center}
+  .avatar{width:150px;height:150px;border-radius:12px;object-fit:cover;display:block;margin:0 auto 10px}
+
+  .position-card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.015));border:1px solid rgba(255,255,255,0.04);padding:18px;border-radius:16px}
+  .candidates{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
+  .candidate{background:rgba(255,255,255,0.03);padding:12px;border-radius:12px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);transition:transform .18s,box-shadow .18s}
+  .candidate:hover{transform:translateY(-6px);box-shadow:0 20px 60px rgba(124,58,237,0.18)}
+  .candidate.selected{outline:4px solid rgba(124,58,237,0.18);box-shadow:0 22px 60px rgba(124,58,237,0.32)}
+  .muted{color:var(--muted)}
+
+  .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(1,6,23,0.6);visibility:hidden;opacity:0;transition:all .2s}
+  .modal.show{visibility:visible;opacity:1}
+  .modal-card{width:min(860px,94%);background:#fff;color:#0b1220;border-radius:12px;padding:18px}
+
+  .results-bar{height:18px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;margin-top:6px}
+  .results-fill{height:100%;background:linear-gradient(90deg,var(--accentB),var(--accentA));color:#fff;display:flex;align-items:center;padding-left:8px;font-weight:700;font-size:13px}
+  footer{margin-top:18px;color:var(--muted);font-size:13px;text-align:center}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="glass">
+      <!-- HEADER -->
+      <header>
+        <div class="brand">
+          <div class="logo"><img src="Headshot100.jpg" alt="UMSAR"></div>
+          <div>
+            <h1>University of Uyo — Medical Students' Association</h1>
+            <p class="muted">Batch XIX — E-Voting Portal (Demo PIN)</p>
+          </div>
+        </div>
+
+        <div style="text-align:right;">
+          <div id="notLogged" class="muted">Not signed in</div>
+          <div id="logged" class="hidden">
+            <div id="userNameDisplay" style="font-weight:700"></div>
+            <div id="userRegDisplay" class="muted text-sm"></div>
+          </div>
+        </div>
+      </header>
+
+      <!-- HERO -->
+      <section id="hero">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <h2 style="font-weight:800;font-size:22px;color:#eafaf1">Secure • Transparent • Fast</h2>
+            <p class="muted text-lg">Sign up with your registration number and institutional email. For this demo everyone uses the demo PIN <strong>123456</strong>.</p>
+
+            <div class="mt-4 grid gap-3">
+              <input id="regNumber" type="text" placeholder="Registration No (e.g. UUMSA101)">
+              <input id="fullName" type="text" placeholder="Full name">
+              <input id="email" type="email" placeholder="Email address">
+            </div>
+
+            <div class="mt-4 flex gap-3 items-center">
+              <button id="btnRequestPin" class="btn btn-primary">Request PIN</button>
+              <button id="btnHavePin" class="btn btn-ghost">I have a PIN</button>
+              <button id="btnAdmin" class="btn btn-ghost">Admin</button>
+              <div class="muted text-sm ml-auto">Demo PIN: <strong>123456</strong></div>
+            </div>
+
+            <div id="pinBox" class="mt-4 hidden">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+                <input id="pinInput" placeholder="Enter PIN" class="">
+                <div></div>
+                <button id="btnVerifyPin" class="btn btn-primary small">Verify PIN</button>
+              </div>
+              <div class="muted text-sm mt-2">PIN does not expire (demo).</div>
+            </div>
+
+            <div id="statusLine" class="mt-3 muted text-lg" aria-live="polite"></div>
+          </div>
+
+          <!-- PREVIEW & LIVE RESULTS -->
+          <aside>
+            <div class="glass p-3 rounded-lg mb-4">
+              <div class="muted uppercase text-sm mb-2">Preview Candidates</div>
+              <div id="previewGrid" class="preview-grid"></div>
+              <div class="muted text-sm mt-3">Rotates 4 tiles at a time — shows all candidates then repeats.</div>
+            </div>
+
+            <div class="glass p-3 rounded-lg">
+              <div class="flex items-center justify-between mb-2">
+                <div class="muted uppercase text-sm">Live Results</div>
+                <div id="resultsLastUpdated" class="muted text-xs"></div>
+              </div>
+              <div id="liveResults" class="space-y-3"></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- BALLOT -->
+      <section id="ballot" class="mt-6 hidden">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-xl font-bold">Ballot</h3>
+            <div class="muted text-sm">Election: Student Council — Batch XIX</div>
+          </div>
+          <div id="voteNotice" class="muted text-sm">Voting is controlled — you can inspect the ballot now</div>
+        </div>
+
+        <div id="positionsArea" class="space-y-6"></div>
+
+        <div class="mt-6 flex items-center gap-3">
+          <button id="btnReview" class="btn btn-primary">Review & Confirm</button>
+          <button id="btnLogout" class="btn btn-ghost">Logout</button>
+        </div>
+      </section>
+
+      <!-- VOTE SUCCESS -->
+      <section id="voteSuccess" class="hidden text-center mt-20">
+        <h2 class="text-4xl font-bold text-[#6ee7b7] mb-6">✅ Your Vote Has Been Submitted!</h2>
+        <p class="muted text-lg mb-8">Thank you for participating in the UMSA election. (Demo)</p>
+        <button id="btnBackHome" class="btn btn-primary">Return to Start</button>
+      </section>
+
+      <footer class="text-lg mt-12">Built for University of Uyo — Batch XIX • Demo PIN in use</footer>
+    </div>
+  </div>
+
+  <!-- REVIEW MODAL -->
+  <div id="reviewModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="reviewTitle">
+    <div class="modal-card">
+      <h3 id="reviewTitle" class="font-bold mb-2 text-lg">Review your choices</h3>
+      <div id="reviewList" style="max-height:360px; overflow:auto; margin-bottom:14px;"></div>
+      <div class="flex justify-end gap-2">
+        <button id="btnCancel" class="btn btn-ghost">Back</button>
+        <button id="btnSubmit" class="btn btn-primary">Submit Vote</button>
+      </div>
+    </div>
+  </div><script>
+/* ========================= PART A: CONFIG & DATA =========================
+   - Demo PIN flow: every voter uses same demo pin "123456"
+   - Liora is admin (UUMSA101). Admin sees admin panel.
+   - All storage is client-side (localStorage) for this demo.
+*/
+
+const DEMO_PIN = "123456";
+
+// POSITIONS + candidates + headshots (use HEADSHOT101..125 images in same folder)
+const POSITIONS = [
+  {id:'cr', title:'Course Representative', candidates:[
+    {name:'Liora Ukpong', img:'HEADSHOT101.jpg'},
+    {name:'Daniel Ita', img:'HEADSHOT102.jpg'},
+    {name:'Robert Success', img:'HEADSHOT103.jpg'},
+    {name:'Ediomo Ebitu', img:'HEADSHOT104.jpg'},
+    {name:'Goodhope Prosper', img:'HEADSHOT105.jpg'}
+  ]},
+  {id:'acr', title:'Assistant Course Representative', candidates:[
+    {name:'Comfort Etiese', img:'HEADSHOT106.jpg'},
+    {name:'Blessing KokoBassey', img:'HEADSHOT107.jpg'},
+    {name:'Ukeme Okono', img:'HEADSHOT108.jpg'}
+  ]},
+  {id:'secretary', title:'Secretary', candidates:[
+    {name:'Nsikak Godfrey', img:'HEADSHOT109.jpg'}
+  ]},
+  {id:'doa', title:'Director of Academics', candidates:[
+    {name:'Cyano', img:'HEADSHOT110.jpg'},
+    {name:'IT Moses', img:'HEADSHOT111.jpg'}
+  ]},
+  {id:'dora', title:'Assistant Director of Academics', candidates:[
+    {name:'Ernest Udoeyo', img:'HEADSHOT112.jpg'}
+  ]},
+  {id:'adora', title:'ADORA', candidates:[
+    {name:'Esther Eshiet', img:'HEADSHOT113.jpg'}
+  ]},
+  {id:'sportsf', title:'Director of Sports (Female)', candidates:[
+    {name:'Fortune', img:'HEADSHOT114.jpg'}
+  ]},
+  {id:'sportsm', title:'Director of Sports (Male)', candidates:[
+    {name:'Promise Abraham', img:'HEADSHOT115.jpg'}
+  ]},
+  {id:'protocol', title:'Director of Protocol', candidates:[
+    {name:'Edidiong Akpan', img:'HEADSHOT116.jpg'}
+  ]},
+  {id:'health', title:'Director of Health & Welfare', candidates:[
+    {name:'Edima Blossom', img:'HEADSHOT117.jpg'},
+    {name:'Itoro George', img:'HEADSHOT118.jpg'},
+    {name:'Faith Wilson', img:'HEADSHOT119.jpg'},
+    {name:'Melody Umoh', img:'HEADSHOT120.jpg'}
+  ]},
+  {id:'socials', title:'Director of Socials', candidates:[
+    {name:'Tima', img:'HEADSHOT121.jpg'}
+  ]},
+  {id:'doi', title:'Director of Information', candidates:[
+    {name:'Stephen', img:'HEADSHOT122.jpg'},
+    {name:'EsseAbasi', img:'HEADSHOT123.jpg'}
+  ]},
+  {id:'dof', title:'Director of Finance', candidates:[
+    {name:'Precious Jonah', img:'HEADSHOT124.jpg'},
+    {name:'Joy Maxwell', img:'HEADSHOT125.jpg'}
+  ]}
+];
+
+// Approved voters map (RegNo -> canonical name)
+const approvedVoters = {
+  "UUMSA101":"Liora Ukpong",
+  "UUMSA102":"Daniel Ita",
+  "UUMSA103":"Robert Success",
+  "UUMSA104":"Ediomo Ebitu",
+  "UUMSA105":"Goodhope Prosper",
+  "UUMSA201":"Comfort Etiese",
+  "UUMSA202":"Blessing KokoBassey",
+  "UUMSA203":"Ukeme Okono",
+  "UUMSA301":"Nsikak Godfrey",
+  "UUMSA401":"Cyano",
+  "UUMSA402":"IT Moses",
+  "UUMSA403":"Ernest Udoeyo",
+  "UUMSA404":"Esther Eshiet",
+  "UUMSA501":"Fortune",
+  "UUMSA502":"Promise Abraham",
+  "UUMSA601":"Edidiong Akpan",
+  "UUMSA701":"Edima Blossom",
+  "UUMSA702":"Itoro George",
+  "UUMSA703":"Faith Wilson",
+  "UUMSA704":"Melody Umoh",
+  "UUMSA801":"Tima",
+  "UUMSA901":"Stephen",
+  "UUMSA902":"EsseAbasi",
+  "UUMSA1001":"Precious Jonah",
+  "UUMSA1002":"Joy Maxwell"
+};
+
+// storage keys
+const STORAGE_VOTES = "umsar_votes_v1";    // votes by reg -> record
+const STORAGE_TALLIES = "umsar_tallies_v1"; // tallies by position->candidate->count
+const STORAGE_USER = "umsar_user_v1";      // optional to persist current user session
+
+// helper utilities
+function normalize(s){ return (s||"").toString().trim().toLowerCase().replace(/\s+/g," "); }
+function saveJSON(key, obj){ localStorage.setItem(key, JSON.stringify(obj)); }
+function loadJSON(key, fallback={}){ try{ return JSON.parse(localStorage.getItem(key) || "null") || fallback; } catch(e){ return fallback; } }
+function getTallies(){ return loadJSON(STORAGE_TALLIES, {}); }
+function saveTallies(t){ saveJSON(STORAGE_TALLIES, t); }
+function getVotes(){ return loadJSON(STORAGE_VOTES, {}); }
+function saveVotes(v){ saveJSON(STORAGE_VOTES, v); }
+
+// UI elements
+const statusLine = document.getElementById("statusLine");
+const btnRequestPin = document.getElementById("btnRequestPin");
+const btnHavePin = document.getElementById("btnHavePin");
+const btnAdmin = document.getElementById("btnAdmin");
+const btnVerifyPin = document.getElementById("btnVerifyPin");
+const pinBox = document.getElementById("pinBox");
+const pinInput = document.getElementById("pinInput");
+const previewGrid = document.getElementById("previewGrid");
+const positionsArea = document.getElementById("positionsArea");
+const ballotSection = document.getElementById("ballot");
+const reviewModal = document.getElementById("reviewModal");
+const reviewList = document.getElementById("reviewList");
+const voteSuccess = document.getElementById("voteSuccess");
+const btnBackHome = document.getElementById("btnBackHome");
+const loggedEl = document.getElementById("logged");
+const notLoggedEl = document.getElementById("notLogged");
+const userNameDisplay = document.getElementById("userNameDisplay");
+const userRegDisplay = document.getElementById("userRegDisplay");
+const liveResults = document.getElementById("liveResults");
+const resultsLastUpdated = document.getElementById("resultsLastUpdated");
+const btnReview = document.getElementById("btnReview");
+const btnSubmit = document.getElementById("btnSubmit");
+const btnCancel = document.getElementById("btnCancel");
+const btnLogout = document.getElementById("btnLogout");
+const btnAdminLogout = document.getElementById("btnAdminLogout");
+
+// in-memory session
+let currentUser = null; // {reg, name, email, isAdmin}
+
+// preset admin: Liora with demo pin (no storage necessary)
+(function presetAdmin(){
+  // nothing to persist for demo PIN - we use mathless fixed pin
+})();
+
+// status helper
+function setStatus(msg, ok=true){
+  statusLine.textContent = msg;
+  statusLine.style.color = ok ? "#9ee7c4" : "#ff9aa2";
+}
+
+// initial render of preview (we will rotate)
+const flatCandidates = []; POSITIONS.forEach(p=> p.candidates.forEach(c=> flatCandidates.push({...c, position:p.title})));
+
+// preview rotation state
+let previewIndex = 0;
+function renderPreviewTiles(){
+  previewGrid.innerHTML = "";
+  if(flatCandidates.length===0) return;
+  for(let i=0;i<4;i++){
+    const idx = (previewIndex + i) % flatCandidates.length;
+    const cand = flatCandidates[idx];
+    const div = document.createElement("div");
+    div.className = "preview-item";
+    div.innerHTML = `<img src="${cand.img}" alt="${cand.name}" style="width:100%;height:140px;object-fit:cover;border-radius:8px"><div style="font-weight:700;margin-top:8px">${cand.name}</div><div class="muted text-sm">${cand.position}</div>`;
+    previewGrid.appendChild(div);
+  }
+  previewIndex = (previewIndex + 4) % flatCandidates.length;
+}
+renderPreviewTiles();
+setInterval(renderPreviewTiles, 3000); // change every 3s
+
+// Request PIN: in demo we'll just assign/show the demo PIN
+btnRequestPin.addEventListener("click", ()=>{
+  const reg = document.getElementById("regNumber").value.trim();
+  const name = document.getElementById("fullName").value.trim();
+  const email = document.getElementById("email").value.trim();
+
+  if(!reg || !name || !email){ setStatus("Fill all fields (reg, name, email)", false); return; }
+  if(!approvedVoters[reg] || normalize(approvedVoters[reg]) !== normalize(name)){ setStatus("RegNo and Name mismatch or not approved", false); return; }
+
+  // Show demo PIN
+  setStatus(`Demo PIN assigned: ${DEMO_PIN} — Use "I have a PIN" to log in.`, true);
+  pinBox.classList.remove("hidden");
+});
+
+// I have a PIN: reveal input
+btnHavePin.addEventListener("click", ()=>{ pinBox.classList.toggle("hidden"); setStatus("Enter your PIN and click Verify", true); });
+
+// Admin direct login button — shows prompt for quick admin login
+btnAdmin.addEventListener("click", ()=>{
+  const reg = prompt("Enter admin RegNo (e.g. UUMSA101):");
+  const pin = prompt("Enter PIN:");
+  if(!reg || !pin) return;
+  if(reg === "UUMSA101" && pin === DEMO_PIN){
+    // set current user to admin session
+    currentUser = { reg:"UUMSA101", name: approvedVoters["UUMSA101"], email:"", isAdmin:true };
+    userNameDisplay.textContent = currentUser.name;
+    userRegDisplay.textContent = currentUser.reg;
+    notLoggedEl.style.display = "none";
+    loggedEl.classList.remove("hidden");
+    setStatus("Admin logged in — access admin panel from header", true);
+    // show ballot and admin panel access
+    renderBallot();
+    ballotSection.classList.remove("hidden");
+  } else {
+    setStatus("Admin login failed", false);
+  }
+});
+
+// Verify PIN (login)
+btnVerifyPin.addEventListener("click", ()=>{
+  const reg = document.getElementById("regNumber").value.trim();
+  const name = document.getElementById("fullName").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const pin = document.getElementById("pinInput").value.trim();
+
+  if(!reg || !name || !email || !pin){ setStatus("All fields required for login", false); return; }
+  if(!approvedVoters[reg] || normalize(approvedVoters[reg]) !== normalize(name)){ setStatus("RegNo and Name mismatch or not approved", false); return; }
+  if(pin !== DEMO_PIN){ setStatus("Invalid PIN", false); return; }
+
+  // success
+  currentUser = { reg, name, email, isAdmin: reg==="UUMSA101" }; // Liora is admin by reg
+  userNameDisplay.textContent = currentUser.name;
+  userRegDisplay.textContent = currentUser.reg;
+  notLoggedEl.style.display = "none";
+  loggedEl.classList.remove("hidden");
+  setStatus(`PIN verified — welcome ${currentUser.name}`, true);
+
+  // show ballot (even if voting time not reached — user wanted to inspect)
+  renderBallot();
+  ballotSection.classList.remove("hidden");
+});
+
+// Render Ballot (build DOM for positions & candidates)
+function renderBallot(){
+  positionsArea.innerHTML = "";
+  POSITIONS.forEach((pos, idx)=>{
+    const card = document.createElement("div");
+    card.className = "position-card";
+    card.innerHTML = `<div class="flex justify-between items-center mb-2">
+                        <div><div class="font-bold text-xl">${pos.title}</div><div class="muted text-sm">Select one candidate</div></div>
+                      </div>`;
+    const ctn = document.createElement("div");
+    ctn.className = "candidates";
+    pos.candidates.forEach(cand=>{
+      const el = document.createElement("label");
+      el.className = "candidate";
+      el.innerHTML = `<img class="avatar" src="${cand.img}" alt="${cand.name}">
+                      <div class="font-semibold mt-2 text-lg">${cand.name}</div>
+                      <input type="radio" name="${pos.id}" value="${cand.name}" class="sr-only">`;
+      el.addEventListener('click', ()=>{
+        // select radio + UI
+        ctn.querySelectorAll('.candidate').forEach(x=>x.classList.remove('selected'));
+        el.classList.add('selected');
+        const radio = el.querySelector('input[type=radio]');
+        if(radio) radio.checked = true;
+      });
+      ctn.appendChild(el);
+    });
+    card.appendChild(ctn);
+    positionsArea.appendChild(card);
+    // animate in
+    gsap.from(card,{duration:0.7, y:18, opacity:0, delay:0.05*idx, ease:'power3.out'});
+  });
+}
+
+// Initial render of tallies & results
+function renderLiveResults(){
+  const tallies = getTallies();
+  liveResults.innerHTML = "";
+  POSITIONS.forEach(pos=>{
+    const posTallies = tallies[pos.id] || {};
+    const block = document.createElement("div");
+    block.innerHTML = `<div class="font-bold">${pos.title}</div>`;
+    pos.candidates.forEach(c=>{
+      const count = posTallies[c.name] || 0;
+      const bar = document.createElement("div");
+      bar.className = "results-bar";
+      const fill = document.createElement("div");
+      fill.className = "results-fill";
+      // compute percent relative to max in this position (visual)
+      const max = Math.max(...pos.candidates.map(x => (posTallies[x.name]||0)), 1);
+      const pct = Math.round((count / (max||1)) * 100);
+      fill.style.width = pct + "%";
+      fill.textContent = `${c.name} (${count})`;
+      bar.appendChild(fill);
+      block.appendChild(bar);
+    });
+    liveResults.appendChild(block);
+  });
+  resultsLastUpdated.textContent = new Date().toLocaleTimeString();
+}
+
+// read/write tallies helpers
+function getTallies(){ return loadJSON(STORAGE_TALLIES, {}); }
+function setTallies(t){ saveTallies(t); renderLiveResults(); }
+
+// load votes on init
+(function init(){
+  renderLiveResults();
+})();
+</script>
+<script>
+// ===================== ADMIN PANEL LOGIC =====================
+
+// Admin logout button dynamically added
+function addAdminLogout(){
+  if(!document.getElementById("btnAdminLogout")){
+    const btn = document.createElement("button");
+    btn.id = "btnAdminLogout";
+    btn.className = "btn btn-ghost ml-2";
+    btn.textContent = "Logout Admin";
+    btn.addEventListener("click", ()=>{
+      currentUser = null;
+      loggedEl.classList.add("hidden");
+      notLoggedEl.style.display = "block";
+      ballotSection.classList.add("hidden");
+      renderLiveResults();
+      setStatus("Admin logged out", true);
+      // remove button itself
+      btn.remove();
+    });
+    document.querySelector("header").appendChild(btn);
+  }
+}
+
+// Hook into admin login to show admin panel
+function onAdminLogin(){
+  addAdminLogout();
+  renderLiveResults(); // renders editable inputs for votes
+  setStatus("Admin panel active — adjust votes as needed", true);
+}
+
+// Override your existing admin login button to call this
+btnAdmin.addEventListener("click", ()=>{
+  const reg = prompt("Enter admin RegNo (e.g. UUMSA101):");
+  const pin = prompt("Enter PIN:");
+  if(!reg || !pin) return;
+  if(reg === "UUMSA101" && pin === DEMO_PIN){
+    // set current user to admin session
+    currentUser = { reg:"UUMSA101", name: approvedVoters["UUMSA101"], email:"", isAdmin:true };
+    userNameDisplay.textContent = currentUser.name;
+    userRegDisplay.textContent = currentUser.reg;
+    notLoggedEl.style.display = "none";
+    loggedEl.classList.remove("hidden");
+    renderBallot();
+    ballotSection.classList.remove("hidden");
+    onAdminLogin();
+  } else {
+    setStatus("Admin login failed", false);
+  }
+});
+
+// On normal user login, ensure only live bars visible
+btnVerifyPin.addEventListener("click", ()=>{
+  const reg = document.getElementById("regNumber").value.trim();
+  const name = document.getElementById("fullName").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const pin = document.getElementById("pinInput").value.trim();
+
+  if(!reg || !name || !email || !pin){ setStatus("All fields required for login", false); return; }
+  if(!approvedVoters[reg] || normalize(approvedVoters[reg]) !== normalize(name)){ setStatus("RegNo and Name mismatch or not approved", false); return; }
+  if(pin !== DEMO_PIN){ setStatus("Invalid PIN", false); return; }
+
+  currentUser = { reg, name, email, isAdmin: reg==="UUMSA101" }; // Liora is admin by reg
+  userNameDisplay.textContent = currentUser.name;
+  userRegDisplay.textContent = currentUser.reg;
+  notLoggedEl.style.display = "none";
+  loggedEl.classList.remove("hidden");
+  setStatus(`PIN verified — welcome ${currentUser.name}`, true);
+
+  renderBallot();
+  ballotSection.classList.remove("hidden");
+
+  // Admin-specific logic
+  if(currentUser.isAdmin) onAdminLogin();
+});
+
+// Initial render
+(function init(){
+  renderLiveResults();
+})();
+</script><script>
+// ===================== RENDER LIVE RESULTS WITH ADMIN EDITABLE VOTES =====================
+
+function renderLiveResults(){
+  const tallies = getTallies();
+  liveResults.innerHTML = "";
+
+  POSITIONS.forEach(pos => {
+    const posTallies = tallies[pos.id] || {};
+    const block = document.createElement("div");
+    block.className = "mb-4";
+    block.innerHTML = `<div class="font-bold mb-1">${pos.title}</div>`;
+
+    pos.candidates.forEach(c => {
+      const count = posTallies[c.name] || 0;
+      const bar = document.createElement("div");
+      bar.className = "results-bar";
+
+      const fill = document.createElement("div");
+      fill.className = "results-fill";
+
+      // Admin editable: input field instead of fixed count text
+      if(currentUser && currentUser.isAdmin){
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = 0;
+        input.value = count;
+        input.style.width = "60%";
+        input.style.padding = "2px 6px";
+        input.style.borderRadius = "8px";
+        input.style.border = "1px solid rgba(255,255,255,0.1)";
+        input.style.background = "rgba(255,255,255,0.05)";
+        input.style.color = "#fff";
+        input.style.fontWeight = "700";
+        input.addEventListener("input", e=>{
+          const val = parseInt(e.target.value) || 0;
+          posTallies[c.name] = val;
+          tallies[pos.id] = posTallies;
+          setTallies(tallies); // save and re-render
+        });
+        fill.appendChild(input);
+      } else {
+        const max = Math.max(...pos.candidates.map(x => (posTallies[x.name]||0)), 1);
+        const pct = Math.round((count / max) * 100);
+        fill.style.width = pct + "%";
+        fill.textContent = c.name; // no vote count for normal users
+      }
+
+      bar.appendChild(fill);
+      block.appendChild(bar);
+    });
+
+    liveResults.appendChild(block);
+  });
+
+  resultsLastUpdated.textContent = new Date().toLocaleTimeString();
+}
+
+// Ensure initial render
+(function init(){
+  renderLiveResults();
+})();
+</script><script>
+// ===================== VOTE REVIEW & SUBMISSION =====================
+
+// Open review modal before final submission
+btnReview.addEventListener("click", () => {
+  reviewList.innerHTML = "";
+  let allSelected = true;
+
+  POSITIONS.forEach(pos => {
+    const selected = document.querySelector(`input[name="${pos.id}"]:checked`);
+    if(selected){
+      const div = document.createElement("div");
+      div.className = "mb-2";
+      div.innerHTML = `<strong>${pos.title}:</strong> ${selected.value}`;
+      reviewList.appendChild(div);
+    } else {
+      allSelected = false;
+    }
+  });
+
+  if(!allSelected){
+    setStatus("Please select a candidate for every position.", false);
+    return;
+  }
+
+  reviewModal.classList.add("show");
+});
+
+// Close review modal
+btnCancel.addEventListener("click", () => {
+  reviewModal.classList.remove("show");
+});
+
+// Submit vote
+btnSubmit.addEventListener("click", () => {
+  if(!currentUser){
+    setStatus("No user session found. Please login.", false);
+    reviewModal.classList.remove("show");
+    return;
+  }
+
+  const votes = getVotes();
+  if(votes[currentUser.reg]){
+    setStatus("You have already voted!", false);
+    reviewModal.classList.remove("show");
+    return;
+  }
+
+  // Collect selections
+  const userVote = {};
+  POSITIONS.forEach(pos => {
+    const selected = document.querySelector(`input[name="${pos.id}"]:checked`);
+    if(selected) userVote[pos.id] = selected.value;
+  });
+
+  // Save vote
+  votes[currentUser.reg] = userVote;
+  saveVotes(votes);
+
+  // Update tallies
+  const tallies = getTallies();
+  for(const posId in userVote){
+    const cand = userVote[posId];
+    if(!tallies[posId]) tallies[posId] = {};
+    if(!tallies[posId][cand]) tallies[posId][cand] = 0;
+    tallies[posId][cand] += 1;
+  }
+  setTallies(tallies);
+
+  reviewModal.classList.remove("show");
+
+  // Show success section
+  ballotSection.classList.add("hidden");
+  voteSuccess.classList.remove("hidden");
+
+  // Confetti animation
+  confetti({
+    particleCount: 150,
+    spread: 70,
+    origin: { y: 0.6 }
+  });
+});
+
+// Back to start (reset)
+btnBackHome.addEventListener("click", () => {
+  voteSuccess.classList.add("hidden");
+  ballotSection.classList.add("hidden");
+  pinBox.classList.remove("hidden");
+  setStatus("Enter your PIN to login again.", true);
+});
+
+// Logout button
+btnLogout.addEventListener("click", () => {
+  currentUser = null;
+  ballotSection.classList.add("hidden");
+  loggedEl.classList.add("hidden");
+  notLoggedEl.style.display = "block";
+  setStatus("Logged out", true);
+});
+</script><script>
+/* ========================= PART B: REVIEW & SUBMIT ========================= */
+
+// enforce demo voting toggle (true = only allow after voting time)
+let enforceVotingTime = false;
+let votingStartTime = new Date(); // can set to future datetime if needed
+
+// review & confirm
+btnReview.addEventListener("click", () => {
+  reviewList.innerHTML = "";
+  let incomplete = false;
+
+  POSITIONS.forEach(pos => {
+    const selected = document.querySelector(`input[name="${pos.id}"]:checked`);
+    const li = document.createElement("div");
+    if (selected) {
+      li.textContent = `${pos.title}: ${selected.value}`;
+    } else {
+      li.textContent = `${pos.title}: No selection`;
+      incomplete = true;
+    }
+    reviewList.appendChild(li);
+  });
+
+  if (incomplete) setStatus("Some positions are unselected. Please review.", false);
+  reviewModal.classList.add("show");
+});
+
+// cancel review
+btnCancel.addEventListener("click", () => reviewModal.classList.remove("show"));
+
+// submit vote
+btnSubmit.addEventListener("click", () => {
+  if (!currentUser) { setStatus("No user logged in", false); return; }
+
+  if (enforceVotingTime) {
+    const now = new Date();
+    if (now < votingStartTime) { setStatus("Voting not open yet", false); return; }
+  }
+
+  const votes = getVotes();
+  const userVotes = {};
+
+  POSITIONS.forEach(pos => {
+    const selected = document.querySelector(`input[name="${pos.id}"]:checked`);
+    if (selected) userVotes[pos.id] = selected.value;
+  });
+
+  votes[currentUser.reg] = userVotes;
+  saveVotes(votes);
+
+  // update tallies
+  const tallies = getTallies();
+  POSITIONS.forEach(pos => {
+    tallies[pos.id] = tallies[pos.id] || {};
+    const val = userVotes[pos.id];
+    if (val) tallies[pos.id][val] = (tallies[pos.id][val] || 0) + 1;
+  });
+  saveTallies(tallies);
+
+  reviewModal.classList.remove("show");
+  ballotSection.classList.add("hidden");
+  voteSuccess.classList.remove("hidden");
+  confetti(); // celebrate vote
+  renderLiveResults();
+});
+
+// back to start after vote success
+btnBackHome.addEventListener("click", () => {
+  currentUser = null;
+  ballotSection.classList.add("hidden");
+  voteSuccess.classList.add("hidden");
+  document.getElementById("hero").classList.remove("hidden");
+  loggedEl.classList.add("hidden");
+  notLoggedEl.style.display = "block";
+  setStatus("Returned to start", true);
+});
+
+// logout from ballot
+btnLogout.addEventListener("click", () => {
+  currentUser = null;
+  ballotSection.classList.add("hidden");
+  document.getElementById("hero").classList.remove("hidden");
+  loggedEl.classList.add("hidden");
+  notLoggedEl.style.display = "block";
+  setStatus("Logged out", true);
+});
+
+/* ========================= PART C: ADMIN PAGE ========================= */
+
+// dynamically create admin panel section
+const adminPage = document.createElement("section");
+adminPage.id = "adminPage";
+adminPage.className = "hidden mt-6";
+adminPage.innerHTML = `
+  <h2 class="text-xl font-bold mb-4">Admin Panel — Manage Votes</h2>
+  <table class="w-full text-left border-collapse" id="adminTable">
+    <thead>
+      <tr>
+        <th class="border-b pb-2">Position</th>
+        <th class="border-b pb-2">Candidate</th>
+        <th class="border-b pb-2">Photo</th>
+        <th class="border-b pb-2">Votes</th>
+      </tr>
+    </thead>
+    <tbody id="adminTableBody"></tbody>
+  </table>
+  <div class="mt-4">
+    <button id="btnAdminLogout" class="btn btn-ghost">Logout Admin</button>
+  </div>
+`;
+document.querySelector(".wrap .glass").appendChild(adminPage);
+
+const adminTableBody = document.getElementById("adminTableBody");
+
+// render admin table with edit buttons
+function renderAdminTable() {
+  const tallies = getTallies();
+  adminTableBody.innerHTML = "";
+
+  POSITIONS.forEach(pos => {
+    pos.candidates.forEach(c => {
+      const tr = document.createElement("tr");
+      const count = tallies[pos.id]?.[c.name] || 0;
+      tr.innerHTML = `
+        <td class="border-b py-1">${pos.title}</td>
+        <td class="border-b py-1">${c.name}</td>
+        <td class="border-b py-1"><img src="${c.img}" alt="${c.name}" width="50" height="50"/></td>
+        <td class="border-b py-1">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <span class="count">${count}</span>
+          <button class="btn btn-ghost small btn-inc">+</button>
+          <button class="btn btn-ghost small btn-dec">-</button>
+          </div>
+        </td>
+      `;
+      const btnInc = tr.querySelector(".btn-inc");
+      const btnDec = tr.querySelector(".btn-dec");
+      btnInc.addEventListener("click", () => {
+        tallies[pos.id][c.name] = (tallies[pos.id][c.name]||0)+1;
+        saveTallies(tallies);
+        renderAdminTable();
+      });
+      btnDec.addEventListener("click", () => {
+        tallies[pos.id][c.name] = Math.max((tallies[pos.id][c.name]||0)-1,0);
+        saveTallies(tallies);
+        renderAdminTable();
+      });
+      adminTableBody.appendChild(tr);
+    });
+  });
+}
+
+// admin logout
+btnAdminLogout.addEventListener("click", () => {
+  currentUser = null;
+  adminPage.classList.add("hidden");
+  document.getElementById("hero").classList.remove("hidden");
+  loggedEl.classList.add("hidden");
+  notLoggedEl.style.display = "block";
+  setStatus("Admin logged out", true);
+});
+
+// show admin panel if admin logged in
+function showAdminPage(){
+  if(currentUser && currentUser.isAdmin){
+    adminPage.classList.remove("hidden");
+    ballotSection.classList.add("hidden");
+    document.getElementById("hero").classList.add("hidden");
+    renderAdminTable();
+  }
+}
+</script><script>
+/* ========================= PART D: PAGE NAVIGATION & LIVE RESULTS ========================= */
+
+// Page sections
+const heroPage = document.getElementById("hero");
+const ballotPage = document.getElementById("ballot");
+
+// update live results function (hide counts for normal users)
+function renderLiveResults(){
+  const tallies = getTallies();
+  liveResults.innerHTML = "";
+  POSITIONS.forEach(pos=>{
+    const posTallies = tallies[pos.id] || {};
+    const block = document.createElement("div");
+    block.innerHTML = `<div class="font-bold">${pos.title}</div>`;
+    pos.candidates.forEach(c=>{
+      const bar = document.createElement("div");
+      bar.className = "results-bar";
+      const fill = document.createElement("div");
+      fill.className = "results-fill";
+      let pct = 25; // default demo
+      if(currentUser?.isAdmin){
+        const count = posTallies[c.name] || 0;
+        const max = Math.max(...pos.candidates.map(x => (posTallies[x.name]||0)), 1);
+        pct = Math.round((count / (max||1)) * 100);
+        fill.textContent = `${c.name} (${count})`; // admin sees counts
+      } else {
+        fill.textContent = c.name; // hide votes from normal users
+      }
+      fill.style.width = pct + "%";
+      bar.appendChild(fill);
+      block.appendChild(bar);
+    });
+    liveResults.appendChild(block);
+  });
+  resultsLastUpdated.textContent = new Date().toLocaleTimeString();
+}
+
+// NAVIGATION: show specific page
+function showPage(page){
+  heroPage.classList.add("hidden");
+  ballotPage.classList.add("hidden");
+  adminPage.classList.add("hidden");
+  voteSuccess.classList.add("hidden");
+  if(page === "hero") heroPage.classList.remove("hidden");
+  if(page === "ballot") ballotPage.classList.remove("hidden");
+  if(page === "admin") adminPage.classList.remove("hidden");
+}
+
+// override login for admin PIN
+btnVerifyPin.addEventListener("click", ()=>{
+  const reg = document.getElementById("regNumber").value.trim();
+  const name = document.getElementById("fullName").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const pin = document.getElementById("pinInput").value.trim();
+
+  if(!reg || !name || !email || !pin){ setStatus("All fields required for login", false); return; }
+
+  // Admin login override
+  if(reg === "UUMSA101" && pin === "09876" && normalize(name) === normalize("Liora Ukpong")){
+    currentUser = { reg, name, email, isAdmin:true };
+    userNameDisplay.textContent = currentUser.name;
+    userRegDisplay.textContent = currentUser.reg;
+    notLoggedEl.style.display = "none";
+    loggedEl.classList.remove("hidden");
+    setStatus("Admin logged in", true);
+    showPage("admin");
+    renderAdminTable();
+    renderLiveResults();
+    return;
+  }
+
+  if(!approvedVoters[reg] || normalize(approvedVoters[reg]) !== normalize(name)){ setStatus("RegNo and Name mismatch or not approved", false); return; }
+  if(pin !== DEMO_PIN){ setStatus("Invalid PIN", false); return; }
+
+  currentUser = { reg, name, email, isAdmin:false };
+  userNameDisplay.textContent = currentUser.name;
+  userRegDisplay.textContent = currentUser.reg;
+  notLoggedEl.style.display = "none";
+  loggedEl.classList.remove("hidden");
+  setStatus(`PIN verified — welcome ${currentUser.name}`, true);
+
+  renderBallot();
+  showPage("ballot");
+});
+
+// Admin direct login button (optional)
+btnAdmin.addEventListener("click", ()=>{
+  const reg = prompt("Enter admin RegNo (e.g. UUMSA101):");
+  const pin = prompt("Enter PIN:");
+  if(!reg || !pin) return;
+  if(reg === "UUMSA101" && pin === "09876"){
+    currentUser = { reg:"UUMSA101", name: approvedVoters["UUMSA101"], email:"", isAdmin:true };
+    userNameDisplay.textContent = currentUser.name;
+    userRegDisplay.textContent = currentUser.reg;
+    notLoggedEl.style.display = "none";
+    loggedEl.classList.remove("hidden");
+    setStatus("Admin logged in", true);
+    showPage("admin");
+    renderAdminTable();
+    renderLiveResults();
+  } else {
+    setStatus("Admin login failed", false);
+  }
+});
+
+// logout buttons
+btnLogout.addEventListener("click", ()=>{ currentUser=null; showPage("hero"); loggedEl.classList.add("hidden"); notLoggedEl.style.display="block"; setStatus("Logged out",true); });
+btnAdminLogout.addEventListener("click", ()=>{ currentUser=null; showPage("hero"); loggedEl.classList.add("hidden"); notLoggedEl.style.display="block"; setStatus("Admin logged out",true); });
+btnBackHome.addEventListener("click", ()=>{ currentUser=null; showPage("hero"); loggedEl.classList.add("hidden"); notLoggedEl.style.display="block"; setStatus("Returned to start", true); });
+
+// Initial page
+showPage("hero");
+renderLiveResults();
+</script><script>
+/* ========================= PART E: VOTING LOGIC & ADMIN EDIT ========================= */
+
+// in-memory selections
+let currentSelections = {};
+
+// REVIEW & SUBMIT
+btnReview.addEventListener("click", ()=>{
+  currentSelections = {};
+  let allSelected = true;
+  POSITIONS.forEach(pos=>{
+    const radio = document.querySelector(`input[name="${pos.id}"]:checked`);
+    if(radio) currentSelections[pos.id] = radio.value;
+    else allSelected = false;
+  });
+  if(!allSelected){ setStatus("Select a candidate for all positions before reviewing", false); return; }
+
+  reviewList.innerHTML = "";
+  POSITIONS.forEach(pos=>{
+    const div = document.createElement("div");
+    div.innerHTML = `<strong>${pos.title}:</strong> ${currentSelections[pos.id]}`;
+    reviewList.appendChild(div);
+  });
+  reviewModal.classList.add("show");
+});
+
+// CANCEL REVIEW
+btnCancel.addEventListener("click", ()=>{ reviewModal.classList.remove("show"); });
+
+// SUBMIT VOTE
+btnSubmit.addEventListener("click", ()=>{
+  reviewModal.classList.remove("show");
+  const votes = getvotes()
+  if(votes[currentuser.reg]){
+    setStatus("You have already voted!", false);
+    reviewModal.classList.remove("show");
+    return;
+  if(!currentUser || currentUser.isAdmin){ setStatus("Invalid submission", false); return; }
+
+  // record vote
+  const votes = getVotes();
+  votes[currentUser.reg] = currentSelections;
+  saveVotes(votes);
+
+  // update tallies
+  const tallies = getTallies();
+  POSITIONS.forEach(pos=>{
+    if(!tallies[pos.id]) tallies[pos.id] = {};
+    const candidate = currentSelections[pos.id];
+    if(!tallies[pos.id][candidate]) tallies[pos.id][candidate] = 0;
+    tallies[pos.id][candidate]++;
+  });
+  setTallies(tallies);
+
+  // confetti
+  confetti({particleCount:150, spread:90, origin:{y:0.6}});
+
+  // show success page
+  showPage("voteSuccess");
+
+
+// ================= ADMIN PANEL ===================
+const adminPage = document.createElement("section");
+adminPage.id = "admin";
+adminPage.className = "mt-6 hidden glass p-6";
+adminPage.innerHTML = `
+  <h2 class="text-xl font-bold mb-4">Admin Panel — Live Tallies</h2>
+  <div id="adminTallies" class="space-y-4"></div>
+  <button id="btnAdminLogout" class="btn btn-ghost mt-4">Logout</button>
+`;
+document.body.appendChild(adminPage);
+
+function renderAdminTable(){
+  const tallies = getTallies();
+  const adminTallies = document.getElementById("adminTallies");
+  adminTallies.innerHTML = "";
+
+  POSITIONS.forEach(pos=>{
+    const posBlock = document.createElement("div");
+    posBlock.className = "position-card";
+    const titleEl = document.createElement("div");
+    titleEl.className = "font-bold mb-2"; titleEl.textContent = pos.title;
+    posBlock.appendChild(titleEl);
+
+    pos.candidates.forEach(c=>{
+      const row = document.createElement("div");
+      row.className = "flex justify-between items-center mb-1";
+
+      const nameEl = document.createElement("div"); nameEl.textContent = c.name;
+      const controls = document.createElement("div"); controls.className="flex gap-1";
+
+      const decBtn = document.createElement("button"); decBtn.className="btn btn-ghost small"; decBtn.textContent="-";
+      const incBtn = document.createElement("button"); incBtn.className="btn btn-ghost small"; incBtn.textContent="+";
+      const countEl = document.createElement("div"); countEl.className="muted text-sm ml-2";
+      countEl.textContent = tallies[pos.id]?.[c.name] || 0;
+
+      decBtn.addEventListener("click", ()=>{
+        if(!tallies[pos.id]) tallies[pos.id]={};
+        if(!tallies[pos.id][c.name]) tallies[pos.id][c.name]=0;
+        if(tallies[pos.id][c.name]>0) tallies[pos.id][c.name]--;
+        countEl.textContent = tallies[pos.id][c.name];
+        setTallies(tallies);
+      });
+
+      incBtn.addEventListener("click", ()=>{
+        if(!tallies[pos.id]) tallies[pos.id]={};
+        if(!tallies[pos.id][c.name]) tallies[pos.id][c.name]=0;
+        tallies[pos.id][c.name]++;
+        countEl.textContent = tallies[pos.id][c.name];
+        setTallies(tallies);
+      });
+
+      controls.appendChild(decBtn); controls.appendChild(incBtn); controls.appendChild(countEl);
+      row.appendChild(nameEl); row.appendChild(controls);
+      posBlock.appendChild(row);
+    });
+    adminTallies.appendChild(posBlock);
+  });
+}
+</script>
+</body>
+</html>
