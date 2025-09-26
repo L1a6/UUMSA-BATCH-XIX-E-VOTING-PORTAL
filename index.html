@@ -173,6 +173,7 @@
 */
 
 const DEMO_PIN = "123456";
+const EMAIL_PIN = "1234";
 
 // POSITIONS + candidates + headshots (use HEADSHOT101..125 images in same folder)
 const POSITIONS = [
@@ -334,8 +335,8 @@ function renderPreviewTiles(){
 renderPreviewTiles();
 setInterval(renderPreviewTiles, 3000); // change every 3s
 
-// Request PIN: in demo we'll just assign/show the demo PIN
-btnRequestPin.addEventListener("click", ()=>{
+// Request PIN: send email with PIN
+btnRequestPin.addEventListener("click", async ()=>{
   const reg = document.getElementById("regNumber").value.trim();
   const name = document.getElementById("fullName").value.trim();
   const email = document.getElementById("email").value.trim();
@@ -343,9 +344,40 @@ btnRequestPin.addEventListener("click", ()=>{
   if(!reg || !name || !email){ setStatus("Fill all fields (reg, name, email)", false); return; }
   if(!approvedVoters[reg] || normalize(approvedVoters[reg]) !== normalize(name)){ setStatus("RegNo and Name mismatch or not approved", false); return; }
 
-  // Show demo PIN
-  setStatus(`Demo PIN assigned: ${DEMO_PIN} — Use "I have a PIN" to log in.`, true);
-  pinBox.classList.remove("hidden");
+  // Disable button and show loading
+  btnRequestPin.disabled = true;
+  btnRequestPin.textContent = "Sending...";
+  setStatus("Sending PIN to your email address...", true);
+
+  try {
+    const response = await fetch('/api/send-pin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email,
+        name: name,
+        regNumber: reg
+      })
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      setStatus(`PIN sent to ${email}! Check your email and use "I have a PIN" to login.`, true);
+      pinBox.classList.remove("hidden");
+    } else {
+      setStatus(`Failed to send PIN: ${result.error}`, false);
+    }
+  } catch (error) {
+    setStatus("Network error. Make sure the server is running.", false);
+    console.error('Error:', error);
+  } finally {
+    // Re-enable button
+    btnRequestPin.disabled = false;
+    btnRequestPin.textContent = "Request PIN";
+  }
 });
 
 // I have a PIN: reveal input
@@ -356,7 +388,7 @@ btnAdmin.addEventListener("click", ()=>{
   const reg = prompt("Enter admin RegNo (e.g. UUMSA101):");
   const pin = prompt("Enter PIN:");
   if(!reg || !pin) return;
-  if(reg === "UUMSA101" && pin === DEMO_PIN){
+  if(reg === "UUMSA101" && (pin === DEMO_PIN || pin === EMAIL_PIN)){
     // set current user to admin session
     currentUser = { reg:"UUMSA101", name: approvedVoters["UUMSA101"], email:"", isAdmin:true };
     userNameDisplay.textContent = currentUser.name;
@@ -381,7 +413,7 @@ btnVerifyPin.addEventListener("click", ()=>{
 
   if(!reg || !name || !email || !pin){ setStatus("All fields required for login", false); return; }
   if(!approvedVoters[reg] || normalize(approvedVoters[reg]) !== normalize(name)){ setStatus("RegNo and Name mismatch or not approved", false); return; }
-  if(pin !== DEMO_PIN){ setStatus("Invalid PIN", false); return; }
+  if(pin !== DEMO_PIN && pin !== EMAIL_PIN){ setStatus("Invalid PIN", false); return; }
 
   // success
   currentUser = { reg, name, email, isAdmin: reg==="UUMSA101" }; // Liora is admin by reg
@@ -501,7 +533,7 @@ btnAdmin.addEventListener("click", ()=>{
   const reg = prompt("Enter admin RegNo (e.g. UUMSA101):");
   const pin = prompt("Enter PIN:");
   if(!reg || !pin) return;
-  if(reg === "UUMSA101" && pin === DEMO_PIN){
+  if(reg === "UUMSA101" && (pin === DEMO_PIN || pin === EMAIL_PIN)){
     // set current user to admin session
     currentUser = { reg:"UUMSA101", name: approvedVoters["UUMSA101"], email:"", isAdmin:true };
     userNameDisplay.textContent = currentUser.name;
@@ -525,7 +557,7 @@ btnVerifyPin.addEventListener("click", ()=>{
 
   if(!reg || !name || !email || !pin){ setStatus("All fields required for login", false); return; }
   if(!approvedVoters[reg] || normalize(approvedVoters[reg]) !== normalize(name)){ setStatus("RegNo and Name mismatch or not approved", false); return; }
-  if(pin !== DEMO_PIN){ setStatus("Invalid PIN", false); return; }
+  if(pin !== DEMO_PIN && pin !== EMAIL_PIN){ setStatus("Invalid PIN", false); return; }
 
   currentUser = { reg, name, email, isAdmin: reg==="UUMSA101" }; // Liora is admin by reg
   userNameDisplay.textContent = currentUser.name;
@@ -951,7 +983,7 @@ btnVerifyPin.addEventListener("click", ()=>{
   }
 
   if(!approvedVoters[reg] || normalize(approvedVoters[reg]) !== normalize(name)){ setStatus("RegNo and Name mismatch or not approved", false); return; }
-  if(pin !== DEMO_PIN){ setStatus("Invalid PIN", false); return; }
+  if(pin !== DEMO_PIN && pin !== EMAIL_PIN){ setStatus("Invalid PIN", false); return; }
 
   currentUser = { reg, name, email, isAdmin:false };
   userNameDisplay.textContent = currentUser.name;
@@ -1024,15 +1056,15 @@ btnCancel.addEventListener("click", ()=>{ reviewModal.classList.remove("show"); 
 // SUBMIT VOTE
 btnSubmit.addEventListener("click", ()=>{
   reviewModal.classList.remove("show");
-  const votes = getvotes()
-  if(votes[currentuser.reg]){
+  const votes = getVotes();
+  if(votes[currentUser.reg]){
     setStatus("You have already voted!", false);
     reviewModal.classList.remove("show");
     return;
+  }
   if(!currentUser || currentUser.isAdmin){ setStatus("Invalid submission", false); return; }
 
   // record vote
-  const votes = getVotes();
   votes[currentUser.reg] = currentSelections;
   saveVotes(votes);
 
@@ -1051,7 +1083,7 @@ btnSubmit.addEventListener("click", ()=>{
 
   // show success page
   showPage("voteSuccess");
-
+});
 
 // ================= ADMIN PANEL ===================
 const adminPage = document.createElement("section");
