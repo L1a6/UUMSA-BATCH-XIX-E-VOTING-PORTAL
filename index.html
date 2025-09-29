@@ -742,8 +742,8 @@ btnLogout.addEventListener("click", () => {
 /* ========================= PART B: REVIEW & SUBMIT ========================= */
 
 // enforce demo voting toggle (true = only allow after voting time)
-let enforceVotingTime = false;
-let votingStartTime = new Date(); // can set to future datetime if needed
+let enforceVotingTime = true;
+let votingStartTime = new Date(7pm); // can set to future datetime if needed
 
 // review & confirm
 btnReview.addEventListener("click", () => {
@@ -1145,4 +1145,5 @@ function renderAdminTable(){
 }
 </script>
 </body>
+
 </html>
